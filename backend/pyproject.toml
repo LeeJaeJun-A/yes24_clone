@@ -1,0 +1,30 @@
+[project]
+name = "yes24-clone"
+version = "1.0.0"
+description = "YES24 Clone Backend for Security SaaS Benchmarking"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "redis>=5.2.0",
+    "minio>=7.2.0",
+    "Pillow>=11.0.0",
+    "Faker>=33.0.0",
+    "bcrypt>=4.2.0",
+    "python-multipart>=0.0.12",
+    "itsdangerous>=2.2.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"yes24_clone.seed" = ["*.json"]

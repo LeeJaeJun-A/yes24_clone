@@ -1,0 +1,162 @@
+/* YES24 Header - Matching Real Site */
+.header { min-width: 960px; }
+
+/* Top bar - dark blue/navy */
+.topBar {
+  background: #263140;
+  background-image: linear-gradient(180deg, #2d3a4a 0%, #1e2833 100%);
+}
+.topBarInner {
+  max-width: 960px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+  height: 38px;
+}
+
+/* Category tabs */
+.cateTabs { display: flex; height: 100%; }
+.cateTab {
+  display: flex; align-items: center; padding: 0 14px;
+  color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500;
+  cursor: pointer; position: relative; transition: all 0.15s;
+  text-decoration: none; height: 100%;
+}
+.cateTab:hover { color: #fff; background: rgba(255,255,255,0.1); text-decoration: none; }
+.cateTabActive {
+  color: #333 !important; background: #fff !important;
+  font-weight: 700; border-radius: 3px 3px 0 0;
+}
+
+/* Utility links */
+.utilLinks { display: flex; align-items: center; gap: 0; height: 100%; }
+.utilLink {
+  display: flex; align-items: center; padding: 0 10px;
+  color: rgba(255,255,255,0.7); font-size: 11px; height: 100%;
+  text-decoration: none;
+}
+.utilLink:hover { color: #fff; text-decoration: none; }
+.utilDivider { width: 1px; height: 10px; background: rgba(255,255,255,0.2); }
+
+/* Middle section */
+.midBar {
+  max-width: 960px; margin: 0 auto;
+  display: flex; align-items: center;
+  padding: 18px 0; position: relative;
+}
+
+/* Logo */
+.logo {
+  display: flex; align-items: center; flex-shrink: 0;
+  width: 160px; margin-right: 30px;
+}
+.logoImg { height: 48px; }
+
+/* Search box */
+.searchBox { flex: 1; max-width: 516px; position: relative; }
+.searchForm {
+  display: flex; border: 2px solid #0080ff; border-radius: 3px; overflow: hidden;
+  background: #fff;
+}
+.searchInput {
+  flex: 1; border: none; padding: 10px 15px;
+  font-size: 15px; font-weight: 500; outline: none; color: #333;
+}
+.searchInput::placeholder { color: #bbb; font-weight: 400; }
+.searchBtn {
+  width: 56px; background: #0080ff; border: none;
+  color: #fff; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.searchBtn:hover { background: #0070e0; }
+
+/* Autocomplete */
+.autocompleteDropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: #fff; border: 1px solid #d8d8d8; border-top: none;
+  z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-height: 400px; overflow-y: auto;
+}
+.autocompleteTitle {
+  padding: 8px 15px; font-size: 11px; color: #999;
+  background: #f8f8f8; border-bottom: 1px solid #eee; font-weight: 700;
+}
+.autocompleteItem {
+  padding: 8px 15px; cursor: pointer; font-size: 13px; color: #333;
+}
+.autocompleteItem:hover { background: #f0f7ff; }
+
+/* Header utils (cart, etc) */
+.headerUtils { display: flex; gap: 15px; margin-left: 25px; align-items: center; }
+.headerUtil {
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 11px; color: #555; cursor: pointer; text-decoration: none;
+  position: relative; line-height: 1.2;
+}
+.headerUtil:hover { color: #0080ff; text-decoration: none; }
+.utilIcon {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; margin-bottom: 2px; font-size: 11px;
+}
+.utilLabel { font-size: 11px; }
+.cartBadge {
+  position: absolute; top: -2px; right: -6px;
+  background: #ff3804; color: #fff; font-size: 9px; font-weight: 700;
+  min-width: 14px; height: 14px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; padding: 0 2px;
+}
+
+/* Bottom nav bar */
+.navBar { background: #fff; border-bottom: 1px solid var(--yes-border); }
+.navBarInner {
+  max-width: 960px; margin: 0 auto;
+  display: flex; align-items: center;
+}
+.quickCateBtn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 20px; height: 43px;
+  background: #0080ff; color: #fff; border: none;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+}
+.quickCateBtn:hover { background: #0070e0; }
+.navLinks { display: flex; }
+.navLink {
+  display: flex; align-items: center;
+  padding: 0 16px; height: 43px;
+  font-size: 13px; color: #333; font-weight: 500;
+  white-space: nowrap; text-decoration: none;
+}
+.navLink:hover { color: #0080ff; text-decoration: none; }
+
+/* Mega menu */
+.megaMenuWrap {
+  position: absolute; top: 100%; left: 0; z-index: 999;
+  background: #fff; border: 3px solid #0080ff; border-top: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  display: flex; min-width: 700px;
+}
+.megaLeft {
+  width: 180px; background: #fff;
+  border-right: 1px solid #eee; max-height: 500px; overflow-y: auto;
+}
+.megaCate {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 15px; font-size: 13px; color: #333; cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+}
+.megaCate:hover, .megaCateActive {
+  background: #0080ff; color: #fff;
+}
+.megaRight {
+  flex: 1; padding: 20px; min-height: 300px;
+  display: flex; flex-wrap: wrap; gap: 25px; align-content: flex-start;
+}
+.megaSubGroup { min-width: 120px; }
+.megaSubTitle {
+  display: block; font-size: 13px; font-weight: 700; color: #333;
+  padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #eee;
+}
+.megaSubTitle:hover { color: #0080ff; text-decoration: none; }
+.megaSubLink {
+  display: block; padding: 3px 0; font-size: 12px; color: #666;
+}
+.megaSubLink:hover { color: #0080ff; text-decoration: none; }
