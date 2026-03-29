@@ -33,3 +33,21 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "minio_user" {
+  description = "MinIO root user"
+  type        = string
+  default     = "yes24minio"
+}
+
+variable "minio_password" {
+  description = "MinIO root password"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "JWT signing secret key (min 32 chars)"
+  type        = string
+  sensitive   = true
+}

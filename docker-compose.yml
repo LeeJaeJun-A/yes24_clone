@@ -30,11 +30,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=postgresql+asyncpg://yes24:yes24@postgres:5432/yes24
+      - DATABASE_URL=postgresql+asyncpg://yes24:${DB_PASSWORD}@postgres:5432/yes24
       - REDIS_URL=redis://redis:6379/0
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${MINIO_USER}
+      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,7 +55,7 @@ services:
     image: postgres:17-alpine
     environment:
       - POSTGRES_USER=yes24
-      - POSTGRES_PASSWORD=yes24
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=yes24
     volumes:
       - pg_data:/var/lib/postgresql/data
@@ -81,8 +82,8 @@ services:
     image: minio/minio
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${MINIO_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
     volumes:
       - minio_data:/data
     restart: unless-stopped
@@ -93,11 +94,11 @@ services:
       dockerfile: Dockerfile
     command: python -m yes24_clone.seed
     environment:
-      - DATABASE_URL=postgresql+asyncpg://yes24:yes24@postgres:5432/yes24
+      - DATABASE_URL=postgresql+asyncpg://yes24:${DB_PASSWORD}@postgres:5432/yes24
       - REDIS_URL=redis://redis:6379/0
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${MINIO_USER}
+      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy

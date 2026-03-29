@@ -58,8 +58,9 @@ services:
       - DATABASE_URL=postgresql+asyncpg://yes24:${db_password}@postgres:5432/yes24
       - REDIS_URL=redis://redis:6379/0
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${minio_user}
+      - MINIO_SECRET_KEY=${minio_password}
+      - JWT_SECRET=${jwt_secret}
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,8 +107,8 @@ services:
     image: minio/minio
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${minio_user}
+      - MINIO_ROOT_PASSWORD=${minio_password}
     volumes:
       - minio_data:/data
     restart: unless-stopped
@@ -119,8 +120,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://yes24:${db_password}@postgres:5432/yes24
       - REDIS_URL=redis://redis:6379/0
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${minio_user}
+      - MINIO_SECRET_KEY=${minio_password}
     depends_on:
       postgres:
         condition: service_healthy

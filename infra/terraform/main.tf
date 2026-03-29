@@ -216,6 +216,9 @@ resource "aws_instance" "app" {
     ecr_backend     = aws_ecr_repository.backend.repository_url
     ecr_frontend    = aws_ecr_repository.frontend.repository_url
     db_password     = var.db_password
+    minio_user      = var.minio_user
+    minio_password  = var.minio_password
+    jwt_secret      = var.jwt_secret
   })
 
   tags = { Name = "${var.project}-server" }
