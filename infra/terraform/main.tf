@@ -5,10 +5,7 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
+
   }
 }
 
@@ -82,16 +79,17 @@ resource "aws_route_table_association" "public" {
 }
 
 # ─── Security Group ───────────────────────────────────────
+# SSH (22) is intentionally omitted — use SSM Session Manager instead
 resource "aws_security_group" "ec2" {
   name_prefix = "${var.project}-ec2-"
   vpc_id      = aws_vpc.main.id
 
-  # HTTP
+  # HTTP — open to all (this is a benchmark target)
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = var.allowed_cidr
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # HTTPS
@@ -99,18 +97,10 @@ resource "aws_security_group" "ec2" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = var.allowed_cidr
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # SSH
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidr
-  }
-
-  # All outbound
+  # All outbound (required for SSM, ECR pull, package installs)
   egress {
     from_port   = 0
     to_port     = 0
@@ -146,27 +136,8 @@ resource "aws_ecr_repository" "frontend" {
   }
 }
 
-# ─── SSH Key Pair (auto-generated if not provided) ────────
-resource "tls_private_key" "ec2" {
-  count     = var.key_name == "" ? 1 : 0
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "generated" {
-  count      = var.key_name == "" ? 1 : 0
-  key_name   = "${var.project}-key"
-  public_key = tls_private_key.ec2[0].public_key_openssh
-}
-
-resource "local_file" "private_key" {
-  count           = var.key_name == "" ? 1 : 0
-  content         = tls_private_key.ec2[0].private_key_pem
-  filename        = "${path.module}/${var.project}-key.pem"
-  file_permission = "0400"
-}
-
-# ─── IAM Role for EC2 (ECR pull access) ──────────────────
+# ─── IAM Role for EC2 (ECR pull + SSM access) ────────────
+# SSH is disabled. Connect via: aws ssm start-session --target <instance-id>
 resource "aws_iam_role" "ec2" {
   name_prefix = "${var.project}-ec2-"
 
@@ -202,7 +173,7 @@ resource "aws_instance" "app" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
-  key_name               = var.key_name != "" ? var.key_name : aws_key_pair.generated[0].key_name
+  key_name               = var.key_name != "" ? var.key_name : null  # no SSH key needed with SSM
 
   root_block_device {
     volume_size = 30

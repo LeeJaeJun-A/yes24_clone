@@ -2,15 +2,12 @@
 # terraform.tfvars is gitignored — never commit it
 
 # AWS settings
-region       = "ap-northeast-2"
+region        = "ap-northeast-2"
 instance_type = "t3.large"
-aws_profile  = "default"
+aws_profile   = "default"
 
-# Access control — restrict to your IP only (recommended)
-# Get your IP: curl https://checkip.amazonaws.com
-allowed_cidr = ["YOUR_IP/32"]
-
-# SSH key (leave empty to auto-generate)
+# SSH key — leave empty (SSH is disabled, use SSM Session Manager instead)
+# Connect: aws ssm start-session --target <instance-id>
 key_name = ""
 
 # Secrets — use strong random values

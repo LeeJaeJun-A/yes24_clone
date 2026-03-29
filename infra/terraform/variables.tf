@@ -17,15 +17,9 @@ variable "instance_type" {
 }
 
 variable "key_name" {
-  description = "EC2 key pair name (leave empty to create new)"
+  description = "EC2 key pair name (optional — SSH is disabled, SSM is used instead)"
   type        = string
   default     = ""
-}
-
-variable "allowed_cidr" {
-  description = "CIDR blocks allowed to access the site (default: open to all)"
-  type        = list(string)
-  default     = ["0.0.0.0/0"]
 }
 
 variable "db_password" {
