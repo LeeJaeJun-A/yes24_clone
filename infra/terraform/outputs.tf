@@ -8,9 +8,9 @@ output "site_url" {
   value       = "http://${aws_instance.app.public_ip}"
 }
 
-output "ssh_command" {
-  description = "SSH command to connect"
-  value       = var.key_name != "" ? "ssh -i <your-key>.pem ec2-user@${aws_instance.app.public_ip}" : "ssh -i infra/terraform/${var.project}-key.pem ec2-user@${aws_instance.app.public_ip}"
+output "ssm_command" {
+  description = "SSM Session Manager command to connect (no SSH needed)"
+  value       = "aws ssm start-session --target ${aws_instance.app.id} --region ${var.region}"
 }
 
 output "ecr_backend" {
@@ -26,9 +26,4 @@ output "ecr_frontend" {
 output "instance_id" {
   description = "EC2 instance ID"
   value       = aws_instance.app.id
-}
-
-output "ssh_key_file" {
-  description = "Path to SSH private key (if auto-generated)"
-  value       = var.key_name == "" ? "${path.module}/${var.project}-key.pem" : "N/A (using existing key: ${var.key_name})"
 }
