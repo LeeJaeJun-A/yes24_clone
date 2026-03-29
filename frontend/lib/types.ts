@@ -48,6 +48,7 @@ export interface PaginatedResponse<T> {
   page: number;
   size: number;
   pages: number;
+  meta?: Record<string, any>;
 }
 
 export interface Review {
@@ -58,6 +59,8 @@ export interface Review {
   title?: string;
   content: string;
   likes: number;
+  helpful_count?: number;
+  is_helpful?: boolean;
   created_at?: string;
   username?: string;
 }
@@ -78,6 +81,8 @@ export interface EventItem {
   description?: string;
   banner_image?: string;
   content_html?: string;
+  start_date?: string;
+  end_date?: string;
   is_active: boolean;
 }
 
@@ -88,6 +93,7 @@ export interface User {
   phone?: string;
   point_balance: number;
   grade: string;
+  total_spent?: number;
 }
 
 export interface CartItem {
@@ -97,4 +103,45 @@ export interface CartItem {
   title?: string;
   cover_image?: string;
   sale_price?: number;
+}
+
+export interface FAQ {
+  id: number;
+  category: string;
+  question: string;
+  answer: string;
+  display_order: number;
+}
+
+export interface Coupon {
+  id: number;
+  code: string;
+  name: string;
+  discount_type: string;
+  discount_value: number;
+  min_order_amount: number;
+  max_discount: number | null;
+  end_date: string;
+  status: string;
+}
+
+export interface PointHistory {
+  date: string;
+  description: string;
+  amount: number;
+  balance: number;
+}
+
+export interface QnA {
+  id: number;
+  product_id: number;
+  user_id: number;
+  question_title: string;
+  question_body: string | null;
+  answer_body: string | null;
+  is_answered: boolean;
+  is_secret: boolean;
+  created_at?: string;
+  answered_at?: string;
+  username?: string;
 }

@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 import bcrypt as _bcrypt
 import redis.asyncio as aioredis
 
@@ -9,6 +9,7 @@ from yes24_clone.db.session import get_db
 from yes24_clone.api.deps import get_redis, get_current_user
 from yes24_clone.config import settings
 from yes24_clone.models.user import User
+from yes24_clone.models.order import Order
 from yes24_clone.schemas.user import LoginRequest, RegisterRequest, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -36,7 +37,7 @@ async def login(
         max_age=86400,
         path="/",
     )
-    return {"message": "로그인 성공", "user": UserOut.model_validate(user)}
+    return {"message": "로그인 성공", "access_token": session_id, "user": UserOut.model_validate(user)}
 
 
 @router.post("/register")
@@ -74,11 +75,31 @@ async def register(
     return {"message": "회원가입 성공", "user": UserOut.model_validate(user)}
 
 
-@router.get("/me", response_model=UserOut | None)
-async def get_me(user: User | None = Depends(get_current_user)):
+@router.get("/me")
+async def get_me(user: User | None = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if not user:
         return None
-    return UserOut.model_validate(user)
+    d = UserOut.model_validate(user).model_dump(mode="json")
+
+    # Calculate grade from total orders
+    result = await db.execute(
+        select(func.coalesce(func.sum(Order.total_amount), 0))
+        .where(Order.user_id == user.id)
+    )
+    total_spent = result.scalar() or 0
+
+    if total_spent >= 300000:
+        grade = "로열"
+    elif total_spent >= 100000:
+        grade = "프리미엄"
+    elif total_spent >= 30000:
+        grade = "우수"
+    else:
+        grade = "일반"
+
+    d["grade"] = grade
+    d["total_spent"] = total_spent
+    return d
 
 
 @router.post("/logout")

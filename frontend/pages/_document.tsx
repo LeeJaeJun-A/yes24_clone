@@ -6,7 +6,7 @@ export default function Document() {
       <Head>
         <meta charSet="utf-8" />
         <meta name="generator" content="Microsoft Visual Studio" />
-        <meta name="description" content="대한민국 대표 인터넷서점 YES24 - 도서, 음반, DVD, 문구, 티켓 판매" />
+        <meta name="description" content="YES24 - 대한민국 대표 인터넷서점" />
         <meta property="og:site_name" content="YES24" />
         <meta property="og:type" content="website" />
         <meta name="robots" content="index, follow" />

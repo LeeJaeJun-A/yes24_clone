@@ -22,6 +22,13 @@ export async function apiFetch<T>(path: string, opts?: RequestInit & { isServer?
   return res.json();
 }
 
+export function getCoverUrl(coverImage: string | null | undefined, goodsNo: number): string {
+  if (!coverImage || !coverImage.startsWith("http")) {
+    return `https://picsum.photos/seed/${goodsNo}/200/280`;
+  }
+  return coverImage;
+}
+
 export async function apiPost<T>(path: string, body: any, opts?: RequestInit): Promise<T> {
   return apiFetch<T>(path, {
     method: 'POST',

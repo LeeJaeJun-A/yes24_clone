@@ -195,6 +195,31 @@ CREATE TABLE customer_tickets (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Product Q&A
+CREATE TABLE product_qna (
+    id          SERIAL PRIMARY KEY,
+    product_id  INTEGER NOT NULL REFERENCES products(id),
+    user_id     INTEGER NOT NULL REFERENCES users(id),
+    question_title VARCHAR(200) NOT NULL,
+    question_body TEXT NOT NULL,
+    answer_body TEXT,
+    is_answered BOOLEAN NOT NULL DEFAULT FALSE,
+    is_secret   BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    answered_at TIMESTAMPTZ
+);
+CREATE INDEX idx_qna_product ON product_qna(product_id);
+CREATE INDEX idx_qna_user ON product_qna(user_id);
+
+-- Review Helpful Votes
+CREATE TABLE review_helpful (
+    id          SERIAL PRIMARY KEY,
+    review_id   INTEGER NOT NULL REFERENCES reviews(id),
+    user_id     INTEGER NOT NULL REFERENCES users(id),
+    UNIQUE(review_id, user_id)
+);
+CREATE INDEX idx_review_helpful_review ON review_helpful(review_id);
+
 -- Coupons
 CREATE TABLE coupons (
     id SERIAL PRIMARY KEY,
@@ -208,3 +233,13 @@ CREATE TABLE coupons (
     end_date TIMESTAMPTZ,
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+-- Event Products (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS event_products (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    display_order INT NOT NULL DEFAULT 0,
+    UNIQUE(event_id, product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_products_event ON event_products(event_id);

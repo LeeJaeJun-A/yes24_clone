@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Product } from '@/lib/types';
-import { getImageUrl, formatPrice } from '@/lib/constants';
+import { formatPrice } from '@/lib/constants';
+import { getCoverUrl } from '@/lib/api';
 
 interface Props {
   product: Product;
@@ -52,7 +53,7 @@ export default function ProductCard({ product, rank, listView, showCheckbox }: P
           {rank !== undefined && <em className="ico rank">{rank}</em>}
           <Link href={`/Product/Goods/${product.goods_no}`}>
             <span className="img_bdr" style={{ display: 'block', border: '1px solid #ebebeb' }}>
-              <img src={getImageUrl(product.cover_image)} alt={product.title} style={{ width: '100%', display: 'block' }} loading="lazy" />
+              <img src={getCoverUrl(product.cover_image, product.goods_no)} alt={product.title} style={{ width: '100%', display: 'block' }} loading="lazy" />
             </span>
           </Link>
         </div>
@@ -127,7 +128,7 @@ export default function ProductCard({ product, rank, listView, showCheckbox }: P
         {rank !== undefined && <em className="ico rank">{rank}</em>}
         <Link href={`/Product/Goods/${product.goods_no}`}>
           <span className="img_bdr" style={{ display: 'block', border: '1px solid #ebebeb' }}>
-            <img src={getImageUrl(product.cover_image)} alt={product.title} style={{ width: '100%', display: 'block' }} loading="lazy" />
+            <img src={getCoverUrl(product.cover_image, product.goods_no)} alt={product.title} style={{ width: '100%', display: 'block' }} loading="lazy" />
           </span>
         </Link>
       </div>

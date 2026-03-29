@@ -23,10 +23,16 @@ async def get_banners(
 
 
 @router.get("/events", response_model=list[EventOut])
-async def get_events(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Event).where(Event.is_active == True).order_by(Event.created_at.desc())
-    )
+async def get_events(
+    status: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(Event).order_by(Event.created_at.desc())
+    if status == "active":
+        query = query.where(Event.is_active == True)
+    elif status == "ended":
+        query = query.where(Event.is_active == False)
+    result = await db.execute(query)
     return [EventOut.model_validate(e) for e in result.scalars().all()]
 
 

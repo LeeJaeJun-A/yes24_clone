@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
@@ -10,16 +10,21 @@ router = APIRouter(prefix="/customer", tags=["customer"])
 
 
 @router.get("/faq")
-async def get_faq(category: str = None, db: AsyncSession = Depends(get_db)):
+async def get_faq(
+    category: str | None = Query(None),
+    q: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    params = {}
     if category:
-        result = await db.execute(
-            text("SELECT id, category, question, answer FROM faq_items WHERE is_active = TRUE AND category = :cat ORDER BY display_order"),
-            {"cat": category},
-        )
+        query = text("SELECT id, category, question, answer, display_order FROM faq_items WHERE is_active = TRUE AND category = :cat ORDER BY display_order")
+        params["cat"] = category
+    elif q:
+        query = text("SELECT id, category, question, answer, display_order FROM faq_items WHERE is_active = TRUE AND (question ILIKE :q OR answer ILIKE :q) ORDER BY display_order")
+        params["q"] = f"%{q}%"
     else:
-        result = await db.execute(
-            text("SELECT id, category, question, answer FROM faq_items WHERE is_active = TRUE ORDER BY category, display_order")
-        )
+        query = text("SELECT id, category, question, answer, display_order FROM faq_items WHERE is_active = TRUE ORDER BY display_order")
+    result = await db.execute(query, params)
     return [dict(r._mapping) for r in result.all()]
 
 

@@ -229,3 +229,42 @@ img[data-loaded="false"], img.lazy-pending {
 .event-content .event-terms h3 { font-size: 14px; margin-bottom: 10px; }
 .event-content .event-terms ul { padding-left: 20px; }
 .event-content .event-terms li { margin-bottom: 5px; font-size: 12px; color: var(--yes-text-light); }
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Focus styles for accessibility */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--yes-blue);
+  outline-offset: 2px;
+}
+
+/* Skeleton animation */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d8d8d8;
+  border-top-color: var(--yes-blue);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Button loading state */
+.btnC[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hide scrollbar for carousels */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

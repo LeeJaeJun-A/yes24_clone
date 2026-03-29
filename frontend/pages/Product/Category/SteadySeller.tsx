@@ -7,49 +7,35 @@ import { Product, PaginatedResponse } from '@/lib/types';
 import ProductCard from '@/components/common/ProductCard';
 import Pagination from '@/components/common/Pagination';
 
-const SIDEBAR_CATS = [
-  { code: '001', name: '국내도서 종합' },
-  { code: '002', name: '외국도서' },
-  { code: '005', name: 'eBook' },
-  { code: '003', name: 'CD/LP' },
-  { code: '004', name: 'DVD/BD' },
-  { code: '006', name: '문구/GIFT' },
-  { code: '008', name: '티켓' },
+const CATEGORY_TABS = [
+  { code: '', label: '종합' },
+  { code: '001', label: '국내도서' },
+  { code: '002', label: '외국도서' },
+  { code: '005', label: 'eBook' },
 ];
 
 interface Props {
   products: PaginatedResponse<Product>;
   categoryCode: string;
   page: number;
-  size: number;
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const categoryCode = (ctx.query.CategoryNumber as string) || '';
+  const categoryCode = (ctx.query.category as string) || '';
   const page = parseInt(ctx.query.page as string) || 1;
-  const size = parseInt(ctx.query.pageSize as string) || 24;
-
   try {
     const products = await apiFetch<PaginatedResponse<Product>>(
-      `/products/steady?page=${page}&size=${size}${categoryCode ? `&category_code=${categoryCode}` : ''}`,
+      `/products/steady?page=${page}&size=24${categoryCode ? `&category_code=${categoryCode}` : ''}`,
       { isServer: true }
     );
-    return { props: { products, categoryCode, page, size } };
+    return { props: { products, categoryCode, page } };
   } catch {
-    return {
-      props: {
-        products: { items: [], total: 0, page: 1, size: 24, pages: 0 },
-        categoryCode: '', page: 1, size: 24,
-      },
-    };
+    return { props: { products: { items: [], total: 0, page: 1, size: 24, pages: 0 }, categoryCode: '', page: 1 } };
   }
 };
 
-export default function SteadySellerPage({ products, categoryCode, page, size }: Props) {
+export default function SteadySellerPage({ products, categoryCode, page }: Props) {
   const router = useRouter();
-  const now = new Date();
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
   const navigate = (params: Record<string, string>) => {
     router.push({ pathname: router.pathname, query: { ...router.query, ...params } });
   };
@@ -57,95 +43,34 @@ export default function SteadySellerPage({ products, categoryCode, page, size }:
   return (
     <>
       <Head><title>스테디셀러 - YES24</title></Head>
-
       <div className="yLocation">
         <div className="yLocationCont">
-          <Link href="/">웰컴</Link>
-          <span className="ico_arr">&gt;</span>
-          <span>스테디셀러</span>
-          {categoryCode && (
-            <>
-              <span className="ico_arr">&gt;</span>
-              <span style={{ color: '#333' }}>{SIDEBAR_CATS.find(c => c.code === categoryCode)?.name || '전체'}</span>
-            </>
-          )}
+          <Link href="/">홈</Link><span className="ico_arr">&gt;</span><span>스테디셀러</span>
         </div>
       </div>
-
-      <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', gap: 30, paddingTop: 10 }}>
-        {/* Left Sidebar */}
-        <div style={{ width: 180, flexShrink: 0 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#333', paddingBottom: 10, borderBottom: '2px solid #333', marginBottom: 10 }}>
-            스테디셀러
-          </h2>
-          <ul style={{ listStyle: 'none' }}>
-            {SIDEBAR_CATS.map(cat => (
-              <li key={cat.code} style={{ borderBottom: '1px solid #ebebeb' }}>
-                <Link
-                  href={`/Product/Category/SteadySeller?CategoryNumber=${cat.code}`}
-                  style={{
-                    display: 'block', padding: '9px 0', fontSize: 13,
-                    color: categoryCode === cat.code ? '#0080ff' : '#333',
-                    fontWeight: categoryCode === cat.code ? 700 : 400,
-                    textDecoration: 'none',
-                  }}
-                >
-                  {cat.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+      <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 10 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#333', paddingBottom: 12, borderBottom: '2px solid #333', marginBottom: 0 }}>
+          스테디셀러
+        </h2>
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #ebebeb', marginBottom: 20 }}>
+          {CATEGORY_TABS.map(cat => (
+            <button key={cat.code} onClick={() => navigate({ category: cat.code, page: '1' })}
+              style={{ padding: '10px 16px', fontSize: 13, border: 'none', cursor: 'pointer', background: categoryCode === cat.code ? '#333' : 'transparent', color: categoryCode === cat.code ? '#fff' : '#666', fontWeight: categoryCode === cat.code ? 700 : 400 }}>
+              {cat.label}
+            </button>
+          ))}
         </div>
-
-        {/* Main Content */}
-        <div style={{ flex: 1 }}>
-          {/* Date range + controls */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '10px 0', borderBottom: '1px solid #ebebeb', marginBottom: 15,
-          }}>
-            <span style={{ fontSize: 11, color: '#999' }}>
-              {monthAgo.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-              {' ~ '}
-              {now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })} 기준
-            </span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <select className="yesSelNor" onChange={(e) => navigate({ pageSize: e.target.value, page: '1' })} value={size}
-                style={{ padding: '4px 8px', fontSize: 12, border: '1px solid #ccc' }}>
-                <option value="24">24개씩 보기</option>
-                <option value="40">40개씩 보기</option>
-                <option value="80">80개씩 보기</option>
-                <option value="120">120개씩 보기</option>
-              </select>
-            </div>
+        <p style={{ fontSize: 12, color: '#999', marginBottom: 20 }}>
+          총 <strong style={{ color: '#333' }}>{products.total}</strong>건
+        </p>
+        {products.items.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>스테디셀러 목록이 없습니다.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 30 }}>
+            {products.items.map(p => <ProductCard key={p.id} product={p} />)}
           </div>
-
-          {/* Product List */}
-          <ul className="sGLi tp_book tp_list" style={{ listStyle: 'none' }}>
-            {products.items.map((product, i) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                rank={(page - 1) * size + i + 1}
-                listView
-              />
-            ))}
-          </ul>
-
-          {products.items.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
-              스테디셀러 목록이 없습니다.
-            </div>
-          )}
-
-          <div style={{ marginTop: 30, marginBottom: 40 }}>
-            <Pagination
-              page={page}
-              pages={products.pages}
-              baseUrl={`/Product/Category/SteadySeller?${categoryCode ? `CategoryNumber=${categoryCode}&` : ''}pageSize=${size}`}
-            />
-          </div>
-        </div>
+        )}
+        <Pagination page={page} pages={products.pages} baseUrl={`/Product/Category/SteadySeller?category=${categoryCode}`} />
       </div>
     </>
   );

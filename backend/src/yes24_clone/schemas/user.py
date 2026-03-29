@@ -33,6 +33,8 @@ class ReviewOut(BaseModel):
     title: str | None = None
     content: str
     likes: int
+    helpful_count: int = 0
+    is_helpful: bool = False
     created_at: datetime | None = None
     username: str | None = None
 
@@ -93,6 +95,8 @@ class EventOut(BaseModel):
     description: str | None = None
     banner_image: str | None = None
     content_html: str | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     is_active: bool
 
     model_config = {"from_attributes": True}

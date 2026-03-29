@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { apiFetch } from '@/lib/api';
+import MypageLayout from '@/components/layout/MypageLayout';
 
 interface Order {
   id: number;
@@ -39,25 +42,73 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   }
 };
 
+function getStatusColor(status: string): { bg: string; color: string } {
+  switch (status) {
+    case 'confirmed':
+    case 'pending':
+      return { bg: '#e0f0ff', color: '#0080ff' };
+    case 'shipping':
+      return { bg: '#e8f5e9', color: '#43a047' };
+    case 'delivered':
+      return { bg: '#f5f5f5', color: '#999' };
+    case 'cancelled':
+      return { bg: '#fff0f0', color: '#ff6666' };
+    default:
+      return { bg: '#f8f8f8', color: '#666' };
+  }
+}
+
 export default function OrderListPage({ orders }: Props) {
+  const router = useRouter();
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const handleCancel = async (orderNo: string) => {
+    if (!confirm('주문을 취소하시겠습니까?')) return;
+    try {
+      await apiFetch(`/orders/${orderNo}/cancel`, { method: 'POST' });
+      router.replace(router.asPath);
+    } catch {
+      alert('주문 취소에 실패했습니다.');
+    }
+  };
+
   return (
-    <>
+    <MypageLayout title="주문내역">
       <Head><title>주문목록 - YES24</title></Head>
 
-      <div className="yLocation">
-        <div className="yLocationCont">
-          <Link href="/">웰컴</Link>
-          <span className="ico_arr">&gt;</span>
-          <Link href="/Member/FTMypageMain">마이페이지</Link>
-          <span className="ico_arr">&gt;</span>
-          <span>주문목록</span>
+        {/* Date Range Filter */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20,
+          padding: '12px 16px', background: '#f8f8f8', border: '1px solid #ebebeb', borderRadius: 4,
+        }}>
+          <span style={{ fontSize: 13, color: '#333', fontWeight: 600 }}>조회기간</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={{
+              padding: '4px 8px', border: '1px solid #ccc', borderRadius: 2,
+              fontSize: 12, color: '#333',
+            }}
+          />
+          <span style={{ color: '#999' }}>~</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            style={{
+              padding: '4px 8px', border: '1px solid #ccc', borderRadius: 2,
+              fontSize: 12, color: '#333',
+            }}
+          />
+          <button style={{
+            padding: '5px 16px', fontSize: 12, background: '#0080ff', color: '#fff',
+            border: 'none', borderRadius: 2, cursor: 'pointer',
+          }}>
+            조회
+          </button>
         </div>
-      </div>
-
-      <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 20 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#333', paddingBottom: 12, borderBottom: '2px solid #333', marginBottom: 24 }}>
-          주문목록
-        </h2>
 
         {orders.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 80, color: '#999' }}>
@@ -82,6 +133,7 @@ export default function OrderListPage({ orders }: Props) {
                 <th style={{ padding: '10px 12px', borderTop: '1px solid #333', borderBottom: '1px solid #ebebeb', textAlign: 'right', fontWeight: 600 }}>결제금액</th>
                 <th style={{ padding: '10px 12px', borderTop: '1px solid #333', borderBottom: '1px solid #ebebeb', textAlign: 'center', fontWeight: 600 }}>상태</th>
                 <th style={{ padding: '10px 12px', borderTop: '1px solid #333', borderBottom: '1px solid #ebebeb', textAlign: 'center', fontWeight: 600 }}>상세</th>
+                <th style={{ padding: '10px 12px', borderTop: '1px solid #333', borderBottom: '1px solid #ebebeb', textAlign: 'center', fontWeight: 600 }}>취소</th>
               </tr>
             </thead>
             <tbody>
@@ -99,8 +151,8 @@ export default function OrderListPage({ orders }: Props) {
                   <td style={{ padding: '12px', borderBottom: '1px solid #ebebeb', textAlign: 'center' }}>
                     <span style={{
                       padding: '3px 10px', borderRadius: 2, fontSize: 11,
-                      background: order.status === 'delivered' ? '#e8f4ff' : order.status === 'cancelled' ? '#fff0f0' : '#f8f8f8',
-                      color: order.status === 'delivered' ? '#0080ff' : order.status === 'cancelled' ? '#ff6666' : '#666',
+                      background: getStatusColor(order.status).bg,
+                      color: getStatusColor(order.status).color,
                     }}>
                       {STATUS_MAP[order.status] || order.status}
                     </span>
@@ -117,12 +169,27 @@ export default function OrderListPage({ orders }: Props) {
                       상세보기
                     </Link>
                   </td>
+                  <td style={{ padding: '12px', borderBottom: '1px solid #ebebeb', textAlign: 'center' }}>
+                    {order.status !== 'cancelled' && order.status !== 'delivered' ? (
+                      <button
+                        onClick={() => handleCancel(order.order_no)}
+                        style={{
+                          padding: '4px 12px', fontSize: 11, border: '1px solid #ff6666',
+                          borderRadius: 2, color: '#ff6666', background: '#fff',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        주문취소
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#ccc' }}>-</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
-    </>
+    </MypageLayout>
   );
 }

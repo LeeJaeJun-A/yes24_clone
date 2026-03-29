@@ -1,7 +1,7 @@
 import math
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, or_
 import redis.asyncio as aioredis
 
 from yes24_clone.db.session import get_db
@@ -15,7 +15,8 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 @router.get("", response_model=PaginatedResponse[ProductListOut])
 async def search_products(
-    query: str = Query(..., min_length=1, alias="query"),
+    query: str = Query(None, alias="query"),
+    q: str = Query(None),
     domain: str = Query("ALL"),
     page: int = Query(1, ge=1),
     size: int = Query(24, ge=1, le=120),
@@ -25,15 +26,21 @@ async def search_products(
     price_max: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    ts_query = func.plainto_tsquery("simple", query)
-    search_vector = func.to_tsvector(
-        "simple",
-        func.coalesce(Product.title, "") + " " +
-        func.coalesce(Product.author, "") + " " +
-        func.coalesce(Product.publisher, "")
-    )
+    search_term = query or q
+    if not search_term or not search_term.strip():
+        raise HTTPException(status_code=400, detail="검색어를 입력해 주세요")
 
-    base = select(Product).where(search_vector.op("@@")(ts_query))
+    search_term = search_term.strip()
+    like_pattern = f"%{search_term}%"
+
+    # ILIKE search across title, author, publisher (works with Korean)
+    base = select(Product).where(
+        or_(
+            Product.title.ilike(like_pattern),
+            Product.author.ilike(like_pattern),
+            Product.publisher.ilike(like_pattern),
+        )
+    )
 
     if category_code:
         base = base.where(Product.category_code.startswith(category_code))
@@ -43,7 +50,7 @@ async def search_products(
         base = base.where(Product.sale_price <= price_max)
 
     # Sort
-    if sort == "popularity":
+    if sort in ("popularity", "relevance"):
         base = base.order_by(Product.sales_index.desc())
     elif sort == "newest":
         base = base.order_by(Product.publish_date.desc())
@@ -52,13 +59,40 @@ async def search_products(
     elif sort == "price_desc":
         base = base.order_by(Product.sale_price.desc())
     else:
-        # relevance - use ts_rank
-        base = base.order_by(
-            func.ts_rank(search_vector, ts_query).desc()
-        )
+        base = base.order_by(Product.sales_index.desc())
 
     count_q = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_q)).scalar() or 0
+
+    # Facets: publisher
+    pub_facet_q = (
+        select(Product.publisher, func.count(Product.id).label('cnt'))
+        .where(or_(
+            Product.title.ilike(like_pattern),
+            Product.author.ilike(like_pattern),
+            Product.publisher.ilike(like_pattern),
+        ))
+        .group_by(Product.publisher)
+        .order_by(func.count(Product.id).desc())
+        .limit(8)
+    )
+    pub_result = await db.execute(pub_facet_q)
+    publishers = [{"name": r[0], "count": r[1]} for r in pub_result.all()]
+
+    # Facets: category
+    cat_facet_q = (
+        select(Product.category_code, func.count(Product.id).label('cnt'))
+        .where(or_(
+            Product.title.ilike(like_pattern),
+            Product.author.ilike(like_pattern),
+            Product.publisher.ilike(like_pattern),
+        ))
+        .group_by(Product.category_code)
+        .order_by(func.count(Product.id).desc())
+        .limit(8)
+    )
+    cat_result = await db.execute(cat_facet_q)
+    categories = [{"code": r[0], "count": r[1]} for r in cat_result.all()]
 
     base = base.offset((page - 1) * size).limit(size)
     result = await db.execute(base)
@@ -68,6 +102,7 @@ async def search_products(
         items=[ProductListOut.model_validate(p) for p in items],
         total=total, page=page, size=size,
         pages=math.ceil(total / size) if total else 0,
+        meta={"facets": {"publishers": publishers, "categories": categories}},
     )
 
 
@@ -85,7 +120,7 @@ async def autocomplete(
     if cached:
         return [c.split("|", 1)[1] if "|" in c else c for c in cached]
 
-    # Fallback to DB trigram search
+    # Fallback to DB ILIKE search
     result = await db.execute(
         select(Product.title)
         .where(Product.title.ilike(f"%{q}%"))

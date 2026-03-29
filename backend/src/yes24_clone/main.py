@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, Response
 
 from yes24_clone.api import categories, products, search, auth, cart, wishlist, orders, banners
-from yes24_clone.api import users, checkout, customer, pages, reviews
+from yes24_clone.api import users, checkout, customer, pages, reviews, qna, fundings
 
 app = FastAPI(
     title="YES24 Clone API",
@@ -34,6 +34,8 @@ app.include_router(checkout.router, prefix="/api/v1")
 app.include_router(customer.router, prefix="/api/v1")
 app.include_router(pages.router, prefix="/api/v1")
 app.include_router(reviews.router, prefix="/api/v1")
+app.include_router(qna.router, prefix="/api/v1")
+app.include_router(fundings.router, prefix="/api/v1")
 
 
 @app.get("/healthz")

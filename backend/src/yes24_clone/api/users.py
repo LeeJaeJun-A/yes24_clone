@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 import bcrypt as _bcrypt
+import redis.asyncio as aioredis
 
 from yes24_clone.db.session import get_db
-from yes24_clone.api.deps import require_user
+from yes24_clone.api.deps import require_user, get_redis
 from yes24_clone.models.user import User
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -78,6 +79,69 @@ async def delete_address(address_id: int, user: User = Depends(require_user), db
     return {"message": "주소가 삭제되었습니다."}
 
 
+@router.get("/dashboard")
+async def get_dashboard(
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from yes24_clone.models.order import Order
+    from yes24_clone.models.wishlist import WishlistItem
+    from yes24_clone.models.cart import CartItem
+
+    orders_count = (await db.execute(
+        select(func.count()).where(Order.user_id == user.id)
+    )).scalar() or 0
+    wishlist_count = (await db.execute(
+        select(func.count()).where(WishlistItem.user_id == user.id)
+    )).scalar() or 0
+    cart_count = (await db.execute(
+        select(func.count()).where(CartItem.user_id == user.id)
+    )).scalar() or 0
+
+    return {
+        "orders_count": orders_count,
+        "wishlist_count": wishlist_count,
+        "cart_count": cart_count,
+        "coupon_count": 2,
+        "point_balance": user.point_balance,
+        "grade": user.grade,
+    }
+
+
+@router.get("/recently-viewed")
+async def get_recently_viewed(
+    user: User = Depends(require_user),
+    redis: aioredis.Redis = Depends(get_redis),
+    db: AsyncSession = Depends(get_db),
+):
+    from yes24_clone.models.product import Product as Prod
+    from yes24_clone.schemas.product import ProductListOut
+
+    key = f"recent:{user.id}"
+    goods_nos = await redis.lrange(key, 0, 19)
+    if not goods_nos:
+        return []
+
+    goods_ids = [int(g) for g in goods_nos]
+    result = await db.execute(select(Prod).where(Prod.goods_no.in_(goods_ids)))
+    products = {p.goods_no: p for p in result.scalars().all()}
+    return [ProductListOut.model_validate(products[gid]) for gid in goods_ids if gid in products]
+
+
+@router.post("/recently-viewed")
+async def add_recently_viewed(
+    goods_no: int,
+    user: User = Depends(require_user),
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    key = f"recent:{user.id}"
+    await redis.lrem(key, 0, str(goods_no))
+    await redis.lpush(key, str(goods_no))
+    await redis.ltrim(key, 0, 19)
+    await redis.expire(key, 86400 * 30)
+    return {"message": "ok"}
+
+
 @router.get("/points-history")
 async def get_points_history(user: User = Depends(require_user)):
     # Stub: return mock points history
@@ -85,4 +149,18 @@ async def get_points_history(user: User = Depends(require_user)):
         {"date": "2026-03-27", "description": "도서 구매 적립", "amount": 500, "balance": user.point_balance},
         {"date": "2026-03-20", "description": "리뷰 작성 적립", "amount": 200, "balance": user.point_balance - 500},
         {"date": "2026-03-15", "description": "가입 축하 포인트", "amount": 5000, "balance": user.point_balance - 700},
+    ]
+
+
+@router.get("/me/coupons")
+async def get_my_coupons(
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return mock coupons for the user"""
+    return [
+        {"id": 1, "code": "WELCOME2026", "name": "신규가입 쿠폰", "discount_type": "PERCENT", "discount_value": 10, "min_order_amount": 15000, "max_discount": 3000, "end_date": "2026-12-31", "status": "사용가능"},
+        {"id": 2, "code": "SPRING500", "name": "봄맞이 할인 쿠폰", "discount_type": "FIXED", "discount_value": 500, "min_order_amount": 10000, "max_discount": None, "end_date": "2026-06-30", "status": "사용가능"},
+        {"id": 3, "code": "REVIEW200", "name": "리뷰 작성 감사 쿠폰", "discount_type": "FIXED", "discount_value": 200, "min_order_amount": 5000, "max_discount": None, "end_date": "2026-04-30", "status": "사용가능"},
+        {"id": 4, "code": "NEWYEAR26", "name": "새해 특별 쿠폰", "discount_type": "PERCENT", "discount_value": 15, "min_order_amount": 20000, "max_discount": 5000, "end_date": "2026-01-31", "status": "만료"},
     ]

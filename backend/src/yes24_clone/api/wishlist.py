@@ -12,6 +12,20 @@ from yes24_clone.schemas.user import WishlistItemOut
 router = APIRouter(prefix="/wishlist", tags=["wishlist"])
 
 
+@router.get("/check/{product_id}")
+async def check_wishlist(
+    product_id: int,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(WishlistItem).where(
+            WishlistItem.user_id == user.id, WishlistItem.product_id == product_id
+        )
+    )
+    return {"in_wishlist": result.scalar_one_or_none() is not None}
+
+
 @router.get("", response_model=list[WishlistItemOut])
 async def get_wishlist(
     user: User = Depends(require_user),

@@ -2,9 +2,11 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login: authLogin } = useAuth();
   const [activeTab, setActiveTab] = useState<'mem' | 'nMem'>('mem');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,20 +25,11 @@ export default function LoginPage() {
     if (!email) { setEmailError(true); return; }
     if (!password) { setPwError(true); return; }
 
-    try {
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.ok) {
-        router.push('/main/default.aspx');
-      } else {
-        const data = await res.json();
-        setError(data.detail || '아이디 또는 비밀번호가 올바르지 않습니다.');
-      }
-    } catch {
-      setError('서버 오류가 발생했습니다.');
+    const result = await authLogin(email, password);
+    if (result.ok) {
+      router.push('/main/default.aspx');
+    } else {
+      setError(result.error || '아이디 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 

@@ -2,72 +2,57 @@ import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { FAQ } from '@/lib/types';
 
-interface FaqItem {
-  id: number;
-  category: string;
-  question: string;
-  answer: string;
-}
+const CATEGORIES = [
+  { key: '주문/결제', label: '주문/결제' },
+  { key: '배송', label: '배송' },
+  { key: '취소/반품', label: '취소/반품' },
+  { key: '회원/혜택', label: '회원/혜택' },
+];
 
-interface Props {
-  faqs: FaqItem[];
-}
+const MOCK_FAQ: FAQ[] = [
+  { id: 1, category: '주문/결제', question: '결제 수단은 어떤 것이 있나요?', answer: '신용카드, 체크카드, 실시간 계좌이체, 무통장 입금, YES포인트, 문화상품권 등으로 결제하실 수 있습니다.', display_order: 1 },
+  { id: 2, category: '주문/결제', question: '주문 후 결제 방법을 변경할 수 있나요?', answer: '결제 완료 전이라면 주문을 취소하고 다시 주문하시면 됩니다. 결제 완료 후에는 변경이 불가능합니다.', display_order: 2 },
+  { id: 3, category: '주문/결제', question: '여러 상품을 한 번에 주문할 수 있나요?', answer: '네, 카트에 여러 상품을 담은 후 한 번에 주문하실 수 있습니다.', display_order: 3 },
+  { id: 4, category: '배송', question: '배송은 얼마나 걸리나요?', answer: '평일 오후 2시 이전 주문 시 당일 출고되며, 출고 후 1~2일 내 도착합니다. 도서산간 지역은 추가 시일이 소요될 수 있습니다.', display_order: 1 },
+  { id: 5, category: '배송', question: '배송비는 얼마인가요?', answer: '2만원 이상 구매 시 무료배송이며, 2만원 미만 구매 시 배송비 2,500원이 부과됩니다.', display_order: 2 },
+  { id: 6, category: '배송', question: '해외 배송이 가능한가요?', answer: '현재 해외 배송은 지원되지 않습니다. 국내 배송만 가능합니다.', display_order: 3 },
+  { id: 7, category: '취소/반품', question: '주문 취소는 어떻게 하나요?', answer: '마이페이지 > 주문내역에서 주문 취소가 가능합니다. 배송 시작 후에는 반품 절차를 진행해 주세요.', display_order: 1 },
+  { id: 8, category: '취소/반품', question: '반품은 어떻게 하나요?', answer: '상품 수령 후 10일 이내에 고객센터로 연락하시면 반품 접수가 가능합니다. 상품 하자의 경우 배송비는 당사 부담입니다.', display_order: 2 },
+  { id: 9, category: '회원/혜택', question: 'YES포인트는 어떻게 적립하나요?', answer: '도서 구매 시 결제금액의 5%가 YES포인트로 적립됩니다. 리뷰 작성 시 추가 포인트가 적립됩니다.', display_order: 1 },
+  { id: 10, category: '회원/혜택', question: '회원 등급은 어떻게 결정되나요?', answer: '최근 3개월간 구매 금액에 따라 SILVER, GOLD, PLATINUM, DIAMOND 등급이 결정됩니다.', display_order: 2 },
+];
+
+interface Props { faqItems: FAQ[]; }
 
 export const getServerSideProps: GetServerSideProps<Props> = async () => {
   try {
-    const faqs = await apiFetch<FaqItem[]>('/customer/faq', { isServer: true });
-    return { props: { faqs: Array.isArray(faqs) ? faqs : [] } };
-  } catch {
-    return { props: { faqs: [] } };
-  }
+    const base = process.env.API_INTERNAL_URL || 'http://backend:8000/api/v1';
+    const res = await fetch(`${base}/customer/faq`);
+    if (res.ok) {
+      const data = await res.json();
+      return { props: { faqItems: data.length > 0 ? data : MOCK_FAQ } };
+    }
+  } catch {}
+  return { props: { faqItems: MOCK_FAQ } };
 };
 
-const DEFAULT_CATEGORIES = ['주문/결제', '배송', '반품/교환', '회원정보', '포인트/쿠폰', '기타'];
+export default function HelpPage({ faqItems }: Props) {
+  const [activeCategory, setActiveCategory] = useState('주문/결제');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function HelpPage({ faqs }: Props) {
-  const categories = faqs.length > 0
-    ? [...new Set(faqs.map(f => f.category))]
-    : DEFAULT_CATEGORIES;
-
-  const [activeCategory, setActiveCategory] = useState(categories[0] || '');
-  const [openId, setOpenId] = useState<number | null>(null);
-  const [form, setForm] = useState({ title: '', content: '', email: '' });
-  const [submitting, setSubmitting] = useState(false);
-
-  const filteredFaqs = faqs.filter(f => f.category === activeCategory);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) {
-      alert('제목과 내용을 입력해주세요.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await apiFetch('/customer/inquiry', {
-        method: 'POST',
-        body: JSON.stringify(form),
-      });
-      alert('문의가 접수되었습니다.');
-      setForm({ title: '', content: '', email: '' });
-    } catch {
-      alert('문의 접수에 실패했습니다. 로그인 후 이용해주세요.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const filteredFaq = searchQuery
+    ? faqItems.filter(f => f.question.includes(searchQuery) || f.answer.includes(searchQuery))
+    : faqItems.filter(f => f.category === activeCategory);
 
   return (
     <>
       <Head><title>고객센터 - YES24</title></Head>
-
       <div className="yLocation">
         <div className="yLocationCont">
-          <Link href="/">웰컴</Link>
-          <span className="ico_arr">&gt;</span>
-          <span>고객센터</span>
+          <Link href="/">홈</Link><span className="ico_arr">&gt;</span><span>고객센터</span>
         </div>
       </div>
 
@@ -76,166 +61,96 @@ export default function HelpPage({ faqs }: Props) {
           고객센터
         </h2>
 
-        {/* Contact Info */}
-        <div style={{
-          display: 'flex', gap: 20, marginBottom: 30,
-        }}>
-          <div style={{
-            flex: 1, background: '#f8f8f8', border: '1px solid #ebebeb', borderRadius: 4,
-            padding: '20px 24px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 8 }}>전화 상담</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#0080ff', marginBottom: 6 }}>1544-3800</div>
-            <div style={{ fontSize: 11, color: '#999' }}>평일 09:00 ~ 18:00 (점심 12:00 ~ 13:00)</div>
-          </div>
-          <div style={{
-            flex: 1, background: '#f8f8f8', border: '1px solid #ebebeb', borderRadius: 4,
-            padding: '20px 24px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 8 }}>이메일 상담</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0080ff', marginBottom: 6 }}>help@yes24.com</div>
-            <div style={{ fontSize: 11, color: '#999' }}>24시간 접수 가능 (답변: 영업일 기준 1~2일)</div>
-          </div>
-          <div style={{
-            flex: 1, background: '#f8f8f8', border: '1px solid #ebebeb', borderRadius: 4,
-            padding: '20px 24px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 8 }}>운영 시간</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>평일 09:00 ~ 18:00</div>
-            <div style={{ fontSize: 11, color: '#999' }}>주말/공휴일 휴무</div>
+        {/* Search */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="궁금하신 내용을 검색해 보세요"
+              style={{ flex: 1, padding: '10px 14px', border: '1px solid #d8d8d8', borderRadius: 3, fontSize: 13 }}
+            />
+            <button className="btnC btn_blue b_size" style={{ padding: '10px 24px' }}>검색</button>
           </div>
         </div>
 
-        {/* FAQ Section */}
-        <div style={{ marginBottom: 40 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#333', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #333' }}>
-            자주 묻는 질문 (FAQ)
-          </h3>
+        {/* Quick info */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 30 }}>
+          <div style={{ padding: 20, border: '1px solid #ebebeb', borderRadius: 4, textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>전화 상담</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#0080ff' }}>1544-3800</div>
+            <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>평일 09:00 ~ 18:00</div>
+          </div>
+          <div style={{ padding: 20, border: '1px solid #ebebeb', borderRadius: 4, textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>카카오톡 상담</div>
+            <div style={{ fontSize: 14, color: '#333' }}>@yes24</div>
+            <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>평일 09:00 ~ 18:00</div>
+          </div>
+          <div style={{ padding: 20, border: '1px solid #ebebeb', borderRadius: 4, textAlign: 'center' }}>
+            <Link href="/Service/Help" style={{ textDecoration: 'none' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 6 }}>1:1 문의</div>
+              <div style={{ fontSize: 14, color: '#0080ff' }}>문의하기 →</div>
+              <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>24시간 접수 가능</div>
+            </Link>
+          </div>
+        </div>
 
-          {/* Category tabs */}
-          <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid #ebebeb' }}>
-            {categories.map(cat => (
+        {/* Category tabs */}
+        {!searchQuery && (
+          <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #ebebeb', marginBottom: 20 }}>
+            {CATEGORIES.map(cat => (
               <button
-                key={cat}
-                onClick={() => { setActiveCategory(cat); setOpenId(null); }}
+                key={cat.key}
+                onClick={() => { setActiveCategory(cat.key); setExpandedId(null); }}
                 style={{
-                  padding: '8px 16px', fontSize: 12, border: 'none', cursor: 'pointer',
-                  borderBottom: activeCategory === cat ? '2px solid #0080ff' : '2px solid transparent',
-                  color: activeCategory === cat ? '#0080ff' : '#666',
-                  fontWeight: activeCategory === cat ? 700 : 400,
-                  background: 'transparent',
+                  padding: '10px 20px', fontSize: 13, border: 'none', cursor: 'pointer',
+                  background: activeCategory === cat.key ? '#333' : 'transparent',
+                  color: activeCategory === cat.key ? '#fff' : '#666',
+                  fontWeight: activeCategory === cat.key ? 700 : 400,
+                  borderRadius: activeCategory === cat.key ? '3px 3px 0 0' : 0,
                 }}
               >
-                {cat}
+                {cat.label}
               </button>
             ))}
           </div>
+        )}
 
-          {/* FAQ accordion */}
-          {filteredFaqs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#999', fontSize: 13 }}>
-              해당 카테고리에 등록된 FAQ가 없습니다.
-            </div>
-          ) : (
-            <div>
-              {filteredFaqs.map(faq => (
-                <div key={faq.id} style={{ borderBottom: '1px solid #ebebeb' }}>
-                  <button
-                    onClick={() => setOpenId(openId === faq.id ? null : faq.id)}
-                    style={{
-                      width: '100%', padding: '14px 16px', textAlign: 'left',
-                      fontSize: 13, color: '#333', background: openId === faq.id ? '#f8f8f8' : '#fff',
-                      border: 'none', cursor: 'pointer',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    }}
-                  >
-                    <span>
-                      <span style={{ color: '#0080ff', fontWeight: 700, marginRight: 8 }}>Q.</span>
-                      {faq.question}
-                    </span>
-                    <svg
-                      width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#999" strokeWidth="1.5"
-                      style={{ transform: openId === faq.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}
-                    >
-                      <path d="M2 4l4 4 4-4" />
-                    </svg>
-                  </button>
-                  {openId === faq.id && (
-                    <div style={{
-                      padding: '14px 16px 14px 36px',
-                      fontSize: 13, color: '#666', lineHeight: 1.7,
-                      background: '#fafafa',
-                    }}>
-                      <span style={{ color: '#ff6666', fontWeight: 700, marginRight: 8 }}>A.</span>
-                      {faq.answer}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {searchQuery && filteredFaq.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+            "{searchQuery}"에 대한 검색 결과가 없습니다.
+          </div>
+        )}
 
-        {/* Inquiry form */}
+        {/* FAQ Accordion */}
         <div style={{ marginBottom: 40 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#333', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid #333' }}>
-            1:1 문의
-          </h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 12, color: '#333', marginBottom: 4, fontWeight: 600 }}>이메일</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="답변 받을 이메일 주소"
-                style={{
-                  width: '100%', padding: '8px 12px', fontSize: 12, border: '1px solid #ccc',
-                  borderRadius: 2, boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 12, color: '#333', marginBottom: 4, fontWeight: 600 }}>제목</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="문의 제목을 입력해주세요"
-                style={{
-                  width: '100%', padding: '8px 12px', fontSize: 12, border: '1px solid #ccc',
-                  borderRadius: 2, boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, color: '#333', marginBottom: 4, fontWeight: 600 }}>내용</label>
-              <textarea
-                value={form.content}
-                onChange={(e) => setForm(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="문의 내용을 입력해주세요"
-                rows={6}
-                style={{
-                  width: '100%', padding: '8px 12px', fontSize: 12, border: '1px solid #ccc',
-                  borderRadius: 2, resize: 'vertical', boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div style={{ textAlign: 'center' }}>
+          {filteredFaq.map(faq => (
+            <div key={faq.id} style={{ borderBottom: '1px solid #ebebeb' }}>
               <button
-                type="submit"
-                disabled={submitting}
-                className="btnC btn_blue"
+                onClick={() => setExpandedId(expandedId === faq.id ? null : faq.id)}
                 style={{
-                  padding: '10px 40px', fontSize: 13, color: '#fff', background: '#0080ff',
-                  border: 'none', borderRadius: 2, cursor: submitting ? 'not-allowed' : 'pointer',
-                  opacity: submitting ? 0.6 : 1,
+                  width: '100%', padding: '14px 12px', background: 'none', border: 'none',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  cursor: 'pointer', textAlign: 'left',
                 }}
               >
-                {submitting ? '접수중...' : '문의 접수'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: '#0080ff', fontWeight: 700, fontSize: 14 }}>Q</span>
+                  <span style={{ fontSize: 13, color: '#333' }}>{faq.question}</span>
+                </div>
+                <span style={{ fontSize: 12, color: '#999', transform: expandedId === faq.id ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }}>▼</span>
               </button>
+              {expandedId === faq.id && (
+                <div style={{ padding: '0 12px 16px 36px', fontSize: 13, color: '#555', lineHeight: 1.8 }}>
+                  <div style={{ padding: '12px 16px', background: '#f8f8f8', borderRadius: 4, borderLeft: '3px solid #0080ff' }}>
+                    <span style={{ color: '#0080ff', fontWeight: 700, marginRight: 8 }}>A</span>
+                    {faq.answer}
+                  </div>
+                </div>
+              )}
             </div>
-          </form>
+          ))}
         </div>
       </div>
     </>

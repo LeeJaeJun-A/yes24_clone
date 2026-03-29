@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 
 from yes24_clone.db.session import get_db
 from yes24_clone.api.deps import require_user
@@ -10,6 +10,17 @@ from yes24_clone.models.product import Product
 from yes24_clone.schemas.user import CartItemOut, AddCartRequest
 
 router = APIRouter(prefix="/cart", tags=["cart"])
+
+
+@router.get("/count")
+async def get_cart_count(
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(func.count()).where(CartItem.user_id == user.id)
+    )
+    return {"count": result.scalar() or 0}
 
 
 @router.get("", response_model=list[CartItemOut])

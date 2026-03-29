@@ -8,9 +8,12 @@ from yes24_clone.models.wishlist import WishlistItem
 from yes24_clone.models.order import Order, OrderItem
 from yes24_clone.models.banner import Banner
 from yes24_clone.models.event import Event
+from yes24_clone.models.qna import ProductQnA
+from yes24_clone.models.review_helpful import ReviewHelpful
+from yes24_clone.models.funding import Funding
 
 __all__ = [
     "Base", "Category", "Product", "User", "Review",
     "CartItem", "WishlistItem", "Order", "OrderItem",
-    "Banner", "Event",
+    "Banner", "Event", "ProductQnA", "ReviewHelpful", "Funding",
 ]

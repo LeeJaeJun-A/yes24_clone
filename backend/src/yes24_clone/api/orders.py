@@ -24,6 +24,27 @@ async def get_orders(
     return [OrderOut.model_validate(o) for o in orders]
 
 
+@router.post("/{order_no}/cancel")
+async def cancel_order(
+    order_no: str,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Order).where(Order.order_no == order_no, Order.user_id == user.id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="주문을 찾을 수 없습니다")
+    if order.status in ("cancelled", "CANCELLED"):
+        raise HTTPException(status_code=400, detail="이미 취소된 주문입니다")
+    if order.status in ("delivered", "DELIVERED"):
+        raise HTTPException(status_code=400, detail="배송완료된 주문은 취소할 수 없습니다")
+    order.status = "CANCELLED"
+    await db.commit()
+    return {"message": "주문이 취소되었습니다", "order_no": order_no}
+
+
 @router.get("/{order_no}")
 async def get_order_detail(
     order_no: str,

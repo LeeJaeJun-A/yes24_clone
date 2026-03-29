@@ -1,89 +1,69 @@
 import Head from 'next/head';
 import Link from 'next/link';
 
-export default function ServiceHoursPage() {
-  const sections = [
-    {
-      title: '도서/음반/DVD 고객센터',
-      phone: '1544-3800',
-      hours: [
-        { day: '평일', time: '09:00 ~ 18:00' },
-        { day: '토요일', time: '09:00 ~ 13:00' },
-        { day: '일요일/공휴일', time: '휴무' },
-      ],
-    },
-    {
-      title: '중고도서 고객센터',
-      phone: '1566-4295',
-      hours: [
-        { day: '평일', time: '09:00 ~ 18:00' },
-        { day: '토/일/공휴일', time: '휴무' },
-      ],
-    },
-    {
-      title: '티켓예매 고객센터',
-      phone: '1544-6399',
-      hours: [
-        { day: '평일', time: '09:00 ~ 18:00' },
-        { day: '토요일', time: '09:00 ~ 17:00' },
-        { day: '일요일/공휴일', time: '휴무' },
-      ],
-    },
-  ];
-
+export default function HoursPage() {
   return (
     <>
-      <Head><title>상담시간 안내 - YES24</title></Head>
+      <Head><title>이용시간 안내 - YES24</title></Head>
       <div className="yLocation">
         <div className="yLocationCont">
-          <Link href="/">웰컴</Link>
-          <span className="ico_arr">&gt;</span>
-          <Link href="/Service/Help">고객센터</Link>
-          <span className="ico_arr">&gt;</span>
-          <span style={{ color: '#333' }}>상담시간 안내</span>
+          <Link href="/">홈</Link><span className="ico_arr">&gt;</span>
+          <Link href="/Service/Help">고객센터</Link><span className="ico_arr">&gt;</span>
+          <span>이용시간 안내</span>
         </div>
       </div>
-      <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 10 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#333', paddingBottom: 12, borderBottom: '2px solid #333', marginBottom: 24 }}>
-          상담시간 안내
-        </h1>
+      <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 20 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#333', paddingBottom: 12, borderBottom: '2px solid #333', marginBottom: 24 }}>
+          이용시간 안내
+        </h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 40 }}>
-          {sections.map((sec) => (
-            <div key={sec.phone} style={{ border: '1px solid #d8d8d8', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', background: '#f8f8f8', borderBottom: '1px solid #d8d8d8' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 4 }}>{sec.title}</h3>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#0080ff' }}>{sec.phone}</div>
-              </div>
-              <div style={{ padding: '14px 18px' }}>
-                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                  <tbody>
-                    {sec.hours.map((h) => (
-                      <tr key={h.day}>
-                        <td style={{ padding: '6px 0', color: '#666', width: 100 }}>{h.day}</td>
-                        <td style={{ padding: '6px 0', fontWeight: 500, color: h.time === '휴무' ? '#ff6666' : '#333' }}>{h.time}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 30 }}>
+          <thead>
+            <tr style={{ background: '#f8f8f8' }}>
+              <th style={{ padding: '12px 16px', borderBottom: '2px solid #333', textAlign: 'left', fontWeight: 700, width: 200 }}>서비스</th>
+              <th style={{ padding: '12px 16px', borderBottom: '2px solid #333', textAlign: 'left', fontWeight: 700 }}>이용시간</th>
+              <th style={{ padding: '12px 16px', borderBottom: '2px solid #333', textAlign: 'left', fontWeight: 700 }}>비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { service: '인터넷 서점', hours: '24시간 연중무휴', note: '시스템 점검 시 일시 중단될 수 있습니다' },
+              { service: '전화 상담', hours: '평일 09:00 ~ 18:00', note: '점심시간 12:00 ~ 13:00' },
+              { service: '카카오톡 상담', hours: '평일 09:00 ~ 18:00', note: '주말/공휴일 휴무' },
+              { service: '1:1 문의 접수', hours: '24시간', note: '답변은 영업일 기준 1~2일 소요' },
+              { service: '당일 배송 주문', hours: '평일 오후 2시까지', note: '재고 상황에 따라 변동 가능' },
+              { service: '반품/교환 접수', hours: '평일 09:00 ~ 18:00', note: '수령 후 10일 이내' },
+            ].map((row, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid #ebebeb' }}>
+                <td style={{ padding: '12px 16px', fontWeight: 500, color: '#333' }}>{row.service}</td>
+                <td style={{ padding: '12px 16px', color: '#333' }}>{row.hours}</td>
+                <td style={{ padding: '12px 16px', color: '#999' }}>{row.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Contact info */}
+        <div style={{ padding: 24, background: '#f8f8f8', borderRadius: 4, marginBottom: 40 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 12 }}>연락처 안내</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, fontSize: 13 }}>
+            <div>
+              <div style={{ color: '#999', marginBottom: 4 }}>고객센터 전화번호</div>
+              <div style={{ fontWeight: 700, color: '#0080ff', fontSize: 18 }}>1544-3800</div>
             </div>
-          ))}
-        </div>
-
-        <div style={{ padding: 20, background: '#f8f8f8', border: '1px solid #ebebeb', borderRadius: 3, marginBottom: 30 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#333', marginBottom: 10 }}>유의사항</h3>
-          <ul style={{ fontSize: 12, color: '#666', lineHeight: 1.8, paddingLeft: 16, listStyle: 'disc' }}>
-            <li>점심시간 (12:00 ~ 13:00)에는 상담이 지연될 수 있습니다.</li>
-            <li>전화 상담이 어려운 경우 <Link href="/Service/Help?tab=inquiry" style={{ color: '#0080ff' }}>1:1 문의하기</Link>를 이용해 주세요.</li>
-            <li>공휴일 및 대체공휴일은 휴무입니다.</li>
-            <li>상담 대기가 많을 경우 연결이 지연될 수 있습니다.</li>
-          </ul>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/Service/Help" className="btnC btn_blue b_size">자주 묻는 질문</Link>
-          <Link href="/Service/Help?tab=inquiry" className="btnC b_size">1:1 문의하기</Link>
+            <div>
+              <div style={{ color: '#999', marginBottom: 4 }}>팩스</div>
+              <div style={{ fontWeight: 500, color: '#333' }}>02-6923-3800</div>
+            </div>
+            <div>
+              <div style={{ color: '#999', marginBottom: 4 }}>이메일</div>
+              <div style={{ fontWeight: 500, color: '#333' }}>help@yes24clone.com</div>
+            </div>
+            <div>
+              <div style={{ color: '#999', marginBottom: 4 }}>카카오톡</div>
+              <div style={{ fontWeight: 500, color: '#333' }}>@yes24</div>
+            </div>
+          </div>
         </div>
       </div>
     </>

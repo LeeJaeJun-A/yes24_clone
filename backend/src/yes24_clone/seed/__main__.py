@@ -1252,6 +1252,127 @@ async def seed_more_orders(session: AsyncSession):
     print(f"Additional orders seeded: {target} orders.")
 
 
+async def seed_qna(session: AsyncSession):
+    """Seed 5-10 Q&As per popular product."""
+    print("Seeding product Q&A...")
+
+    # Get top 500 products (most popular)
+    result = await session.execute(
+        text("SELECT id FROM products ORDER BY sales_index DESC LIMIT 500")
+    )
+    product_ids = [r[0] for r in result.all()]
+    if not product_ids:
+        print("No products found, skipping Q&A.")
+        return
+
+    result = await session.execute(text("SELECT id, username FROM users LIMIT 200"))
+    users = [(r[0], r[1]) for r in result.all()]
+    if not users:
+        print("No users found, skipping Q&A.")
+        return
+
+    QNA_QUESTIONS = [
+        ("배송 기간이 얼마나 걸리나요?", "주문 후 배송까지 보통 며칠 정도 소요되는지 궁금합니다."),
+        ("이 책 개정판 나올 예정인가요?", "혹시 개정판이 나올 예정이 있는지 알고 싶습니다."),
+        ("목차에 없는 내용도 포함되어 있나요?", "목차 외에 추가적인 부록이나 별첨 자료가 있는지 궁금합니다."),
+        ("입문자가 읽기에 적합한가요?", "해당 분야를 처음 접하는 사람이 읽기에 난이도가 어떤지 알고 싶습니다."),
+        ("전자책으로도 출간되어 있나요?", "eBook 버전이 있는지 확인하고 싶습니다."),
+        ("사은품이 아직 남아있나요?", "사은품 증정 이벤트가 아직 진행 중인지 궁금합니다."),
+        ("선물용으로 포장이 가능한가요?", "선물용으로 별도 포장을 해주시는지 알고 싶습니다."),
+        ("번역 품질이 어떤가요?", "원서를 읽어봤는데 번역본의 품질이 궁금합니다."),
+        ("이 시리즈의 다른 책도 있나요?", "같은 시리즈의 다른 권도 판매하고 있는지 알고 싶습니다."),
+        ("품절된 책 재입고 예정이 있나요?", "품절 상태인데 재입고 예정일을 알 수 있을까요?"),
+        ("대량 구매 할인이 가능한가요?", "단체 구매나 대량 구매 시 별도 할인이 가능한지 문의드립니다."),
+        ("저자 사인본이 있나요?", "저자 사인본 판매 여부가 궁금합니다."),
+    ]
+
+    QNA_ANSWERS = [
+        "안녕하세요, YES24입니다. 일반적으로 주문 후 1~2영업일 내에 출고되며, 출고 후 1~2일 이내에 수령 가능합니다.",
+        "안녕하세요. 현재 개정판 출간 예정은 확인되지 않고 있습니다. 출판사에 문의하시면 더 정확한 안내를 받으실 수 있습니다.",
+        "안녕하세요. 해당 도서에는 목차에 표기된 내용 외에 별도 부록이 포함되어 있습니다. 상세 내용은 도서 정보를 참고해 주세요.",
+        "안녕하세요. 해당 도서는 입문자도 쉽게 읽을 수 있도록 구성되어 있습니다. 기초부터 차근차근 설명하고 있어 추천드립니다.",
+        "안녕하세요. 현재 eBook 버전은 별도로 판매되고 있습니다. eBook 카테고리에서 검색하시면 확인하실 수 있습니다.",
+        "안녕하세요. 사은품은 소진 시 종료되며, 현재 재고 상황은 실시간으로 변동됩니다. 주문 시점에 재고가 있으면 함께 발송됩니다.",
+    ]
+
+    count = 0
+    for prod_id in product_ids:
+        num_qna = random.randint(3, 10)
+        for _ in range(num_qna):
+            user_id, _ = random.choice(users)
+            q_title, q_body = random.choice(QNA_QUESTIONS)
+            is_secret = random.random() < 0.2
+            is_answered = random.random() < 0.6
+            answer = random.choice(QNA_ANSWERS) if is_answered else None
+            created = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 365))
+            answered_at = created + timedelta(days=random.randint(1, 7)) if is_answered else None
+
+            await session.execute(
+                text("""
+                    INSERT INTO product_qna (
+                        product_id, user_id, question_title, question_body,
+                        answer_body, is_answered, is_secret, created_at, answered_at
+                    ) VALUES (
+                        :product_id, :user_id, :question_title, :question_body,
+                        :answer_body, :is_answered, :is_secret, :created_at, :answered_at
+                    )
+                """),
+                {
+                    "product_id": prod_id,
+                    "user_id": user_id,
+                    "question_title": q_title,
+                    "question_body": q_body,
+                    "answer_body": answer,
+                    "is_answered": is_answered,
+                    "is_secret": is_secret,
+                    "created_at": created,
+                    "answered_at": answered_at,
+                },
+            )
+            count += 1
+
+        if count % 1000 == 0:
+            await session.commit()
+            print(f"  ... {count} Q&As created")
+
+    await session.commit()
+    print(f"Q&A seeded: {count} items.")
+
+
+async def seed_review_helpful(session: AsyncSession):
+    """Seed helpful votes on reviews to match existing likes counts."""
+    print("Seeding review helpful votes...")
+
+    result = await session.execute(
+        text("SELECT id, likes FROM reviews WHERE likes > 0 ORDER BY likes DESC LIMIT 5000")
+    )
+    reviews_with_likes = result.all()
+
+    result2 = await session.execute(text("SELECT id FROM users"))
+    user_ids = [r[0] for r in result2.all()]
+
+    count = 0
+    for review_id, likes in reviews_with_likes:
+        voters = random.sample(user_ids, k=min(likes, len(user_ids)))
+        for uid in voters:
+            await session.execute(
+                text("""
+                    INSERT INTO review_helpful (review_id, user_id)
+                    VALUES (:review_id, :user_id)
+                    ON CONFLICT DO NOTHING
+                """),
+                {"review_id": review_id, "user_id": uid},
+            )
+            count += 1
+
+        if count % 2000 == 0 and count > 0:
+            await session.commit()
+            print(f"  ... {count} helpful votes created")
+
+    await session.commit()
+    print(f"Review helpful votes seeded: {count} items.")
+
+
 async def main():
     print("=" * 60)
     print("YES24 Clone - Data Seeder")
@@ -1300,6 +1421,8 @@ async def main():
         await seed_faq(session)
         await seed_coupons(session)
         await seed_more_orders(session)
+        await seed_qna(session)
+        await seed_review_helpful(session)
 
     await engine.dispose()
     await redis_client.aclose()

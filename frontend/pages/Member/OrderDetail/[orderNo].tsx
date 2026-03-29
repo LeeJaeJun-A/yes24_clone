@@ -1,8 +1,12 @@
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
 import { apiFetch } from '@/lib/api';
 import { getImageUrl } from '@/lib/constants';
+import { getCoverUrl } from '@/lib/api';
+import MypageLayout from '@/components/layout/MypageLayout';
 
 interface OrderItem {
   id: number;
@@ -33,7 +37,8 @@ interface Props {
 
 const STATUS_MAP: Record<string, string> = {
   pending: '주문확인중',
-  confirmed: '주문확인',
+  confirmed: '결제완료',
+  paid: '결제완료',
   shipping: '배송중',
   delivered: '배송완료',
   cancelled: '주문취소',
@@ -54,12 +59,27 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   }
 };
 
-export default function OrderDetailPage({ order }: Props) {
+export default function OrderDetailPage({ order: initialOrder }: Props) {
+  const [order, setOrder] = useState(initialOrder);
+  const router = useRouter();
+
+  const cancelOrder = async () => {
+    if (!order) return;
+    if (!confirm('주문을 취소하시겠습니까?')) return;
+    try {
+      await fetch(`/api/v1/orders/${order.order_no}/cancel`, { method: 'POST' });
+      setOrder({ ...order, status: 'cancelled' });
+      alert('주문이 취소되었습니다.');
+    } catch {
+      alert('주문 취소에 실패했습니다.');
+    }
+  };
+
   if (!order) {
     return (
-      <>
+      <MypageLayout title="주문상세">
         <Head><title>주문 상세 - YES24</title></Head>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: 80, textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', padding: 80 }}>
           <p style={{ fontSize: 14, color: '#999', marginBottom: 20 }}>주문 정보를 찾을 수 없습니다.</p>
           <Link href="/Member/OrderList" className="btnC btn_blue" style={{
             display: 'inline-block', padding: '10px 24px', fontSize: 13,
@@ -68,32 +88,15 @@ export default function OrderDetailPage({ order }: Props) {
             주문목록으로 이동
           </Link>
         </div>
-      </>
+      </MypageLayout>
     );
   }
 
   const itemsTotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <>
+    <MypageLayout title="주문상세">
       <Head><title>주문 상세 ({order.order_no}) - YES24</title></Head>
-
-      <div className="yLocation">
-        <div className="yLocationCont">
-          <Link href="/">웰컴</Link>
-          <span className="ico_arr">&gt;</span>
-          <Link href="/Member/FTMypageMain">마이페이지</Link>
-          <span className="ico_arr">&gt;</span>
-          <Link href="/Member/OrderList">주문목록</Link>
-          <span className="ico_arr">&gt;</span>
-          <span>주문 상세</span>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 20 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#333', paddingBottom: 12, borderBottom: '2px solid #333', marginBottom: 24 }}>
-          주문 상세
-        </h2>
 
         {/* Order info header */}
         <div style={{
@@ -142,7 +145,7 @@ export default function OrderDetailPage({ order }: Props) {
                   <td style={{ padding: '12px 10px', borderBottom: '1px solid #ebebeb' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <img
-                        src={getImageUrl(item.cover_image || null)}
+                        src={getCoverUrl(item.cover_image, item.goods_no || item.product_id)}
                         alt={item.title}
                         style={{ width: 50, height: 70, objectFit: 'cover', border: '1px solid #ebebeb' }}
                         loading="lazy"
@@ -202,6 +205,22 @@ export default function OrderDetailPage({ order }: Props) {
           </div>
         </div>
 
+        {/* Cancel button if eligible */}
+        {(order.status === 'confirmed' || order.status === 'paid' || order.status === 'pending') && (
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <button
+              onClick={cancelOrder}
+              style={{
+                padding: '10px 30px', fontSize: 13,
+                background: '#fff', color: '#ff6666', border: '1px solid #ff6666',
+                borderRadius: 2, cursor: 'pointer',
+              }}
+            >
+              주문 취소
+            </button>
+          </div>
+        )}
+
         {/* Back button */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <Link href="/Member/OrderList" style={{
@@ -218,7 +237,6 @@ export default function OrderDetailPage({ order }: Props) {
             쇼핑 계속하기
           </Link>
         </div>
-      </div>
-    </>
+    </MypageLayout>
   );
 }
