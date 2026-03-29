@@ -189,7 +189,6 @@ resource "aws_instance" "app" {
     db_password     = var.db_password
     minio_user      = var.minio_user
     minio_password  = var.minio_password
-    jwt_secret      = var.jwt_secret
   })
 
   tags = { Name = "${var.project}-server" }

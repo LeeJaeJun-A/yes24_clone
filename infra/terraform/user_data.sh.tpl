@@ -60,7 +60,6 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${minio_user}
       - MINIO_SECRET_KEY=${minio_password}
-      - JWT_SECRET=${jwt_secret}
     depends_on:
       postgres:
         condition: service_healthy

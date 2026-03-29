@@ -40,8 +40,4 @@ variable "minio_password" {
   sensitive   = true
 }
 
-variable "jwt_secret" {
-  description = "JWT signing secret key (min 32 chars)"
-  type        = string
-  sensitive   = true
-}
+
