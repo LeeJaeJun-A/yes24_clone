@@ -31,6 +31,8 @@ class Product(Base):
     page_count = Column(SmallInteger)
     weight_grams = Column(SmallInteger)
     dimensions = Column(String(50))
+    stock_quantity = Column(Integer, nullable=False, default=999)
+    is_soldout = Column(Boolean, nullable=False, default=False)
     sales_index = Column(Integer, nullable=False, default=0)
     review_count = Column(Integer, nullable=False, default=0)
     rating_avg = Column(Numeric(2, 1), nullable=False, default=0.0)

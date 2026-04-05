@@ -220,18 +220,37 @@ CREATE TABLE review_helpful (
 );
 CREATE INDEX idx_review_helpful_review ON review_helpful(review_id);
 
--- Coupons
-CREATE TABLE coupons (
+-- Add vulnerability-required columns to users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Add stock management columns to products
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER NOT NULL DEFAULT 999;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_soldout BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Coupons (updated with usage tracking)
+CREATE TABLE IF NOT EXISTS coupons (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
-    name VARCHAR(200) NOT NULL,
-    discount_type VARCHAR(20) NOT NULL DEFAULT 'PERCENT',
+    name VARCHAR(200) NOT NULL DEFAULT '',
+    discount_type VARCHAR(10) NOT NULL,
     discount_value INTEGER NOT NULL,
-    min_order_amount INTEGER DEFAULT 0,
+    min_order_amount INTEGER NOT NULL DEFAULT 0,
     max_discount INTEGER,
-    start_date TIMESTAMPTZ,
-    end_date TIMESTAMPTZ,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE
+    expires_at TIMESTAMPTZ,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    usage_limit INTEGER NOT NULL DEFAULT 100,
+    used_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User Coupons (registration & usage tracking)
+CREATE TABLE IF NOT EXISTS user_coupons (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    coupon_id INTEGER NOT NULL REFERENCES coupons(id),
+    used_at TIMESTAMPTZ,
+    order_id INTEGER REFERENCES orders(id)
 );
 
 -- Event Products (many-to-many relationship)

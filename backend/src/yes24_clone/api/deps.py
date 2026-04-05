@@ -28,8 +28,15 @@ async def get_current_user(
     user_id = await redis.get(f"session:{session_id}")
     if not user_id:
         return None
+
+    # Sliding session: extend TTL by 1 hour on every authenticated request
+    await redis.expire(f"session:{session_id}", 3600)
+
     result = await db.execute(select(User).where(User.id == int(user_id)))
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+    if user and not user.is_active:
+        return None
+    return user
 
 
 async def require_user(

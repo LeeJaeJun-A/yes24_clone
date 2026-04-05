@@ -34,6 +34,8 @@ class ProductDetailOut(ProductListOut):
     page_count: int | None = None
     weight_grams: int | None = None
     dimensions: str | None = None
+    stock_quantity: int = 999
+    is_soldout: bool = False
     tags: list[str] | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

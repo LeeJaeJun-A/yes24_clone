@@ -388,14 +388,14 @@ async def seed_products(session: AsyncSession, leaf_categories: list[str], minio
                         original_price, sale_price, discount_rate, point_rate,
                         description, toc, cover_image, page_count, weight_grams,
                         dimensions, sales_index, review_count, rating_avg,
-                        is_available, tags
+                        is_available, tags, stock_quantity, is_soldout
                     ) VALUES (
                         :goods_no, :title, :subtitle, :author, :translator, :publisher,
                         :publish_date, :isbn, :category_code, :product_type,
                         :original_price, :sale_price, :discount_rate, :point_rate,
                         :description, :toc, :cover_image, :page_count, :weight_grams,
                         :dimensions, :sales_index, :review_count, :rating_avg,
-                        :is_available, :tags
+                        :is_available, :tags, :stock_quantity, :is_soldout
                     ) ON CONFLICT (goods_no) DO NOTHING
                 """),
                 {
@@ -424,6 +424,8 @@ async def seed_products(session: AsyncSession, leaf_categories: list[str], minio
                     "rating_avg": rating,
                     "is_available": random.random() < 0.95,
                     "tags": tags if tags else None,
+                    "stock_quantity": random.randint(0, 500),
+                    "is_soldout": random.random() < 0.05,
                 },
             )
 

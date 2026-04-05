@@ -11,9 +11,11 @@ from yes24_clone.models.event import Event
 from yes24_clone.models.qna import ProductQnA
 from yes24_clone.models.review_helpful import ReviewHelpful
 from yes24_clone.models.funding import Funding
+from yes24_clone.models.coupon import Coupon, UserCoupon
 
 __all__ = [
     "Base", "Category", "Product", "User", "Review",
     "CartItem", "WishlistItem", "Order", "OrderItem",
     "Banner", "Event", "ProductQnA", "ReviewHelpful", "Funding",
+    "Coupon", "UserCoupon",
 ]

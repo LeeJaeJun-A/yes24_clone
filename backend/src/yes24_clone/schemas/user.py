@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class LoginRequest(BaseModel):
     email: str
     password: str
+    remember_me: bool = False
 
 
 class RegisterRequest(BaseModel):
@@ -12,6 +13,7 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
     phone: str | None = None
+    is_admin: bool = False  # B8: Mass assignment — accepted from body
 
 
 class UserOut(BaseModel):
@@ -21,6 +23,7 @@ class UserOut(BaseModel):
     phone: str | None = None
     point_balance: int
     grade: str
+    is_admin: bool = False
 
     model_config = {"from_attributes": True}
 

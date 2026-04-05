@@ -108,6 +108,70 @@ async def create_qna(
     return {"message": "질문이 등록되었습니다.", "id": qna.id}
 
 
+@router.put("/products/{goods_no}/qna/{qna_id}")
+async def update_qna(
+    goods_no: int,
+    qna_id: int,
+    req: QnACreateRequest,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ProductQnA).where(ProductQnA.id == qna_id, ProductQnA.user_id == user.id)
+    )
+    qna = result.scalar_one_or_none()
+    if not qna:
+        raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다")
+    qna.question_title = req.title
+    qna.question_body = req.body
+    qna.is_secret = req.is_secret
+    await db.commit()
+    return {"message": "질문이 수정되었습니다"}
+
+
+@router.delete("/products/{goods_no}/qna/{qna_id}")
+async def delete_qna(
+    goods_no: int,
+    qna_id: int,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ProductQnA).where(ProductQnA.id == qna_id, ProductQnA.user_id == user.id)
+    )
+    qna = result.scalar_one_or_none()
+    if not qna:
+        raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다")
+    await db.delete(qna)
+    await db.commit()
+    return {"message": "질문이 삭제되었습니다"}
+
+
+class AnswerRequest(BaseModel):
+    answer: str
+
+
+@router.post("/products/{goods_no}/qna/{qna_id}/answer")
+async def answer_qna(
+    goods_no: int,
+    qna_id: int,
+    req: AnswerRequest,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not user.is_admin:
+        raise HTTPException(status_code=403, detail="관리자만 답변할 수 있습니다")
+    result = await db.execute(select(ProductQnA).where(ProductQnA.id == qna_id))
+    qna = result.scalar_one_or_none()
+    if not qna:
+        raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다")
+    qna.answer_body = req.answer
+    qna.is_answered = True
+    qna.answered_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"message": "답변이 등록되었습니다"}
+
+
 @router.get("/products/{goods_no}/qna/count")
 async def qna_count(
     goods_no: int,

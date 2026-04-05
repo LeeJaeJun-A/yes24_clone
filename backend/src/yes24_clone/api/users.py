@@ -142,6 +142,38 @@ async def add_recently_viewed(
     return {"message": "ok"}
 
 
+@router.put("/me")
+async def update_me(
+    username: str = None, phone: str = None,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if username:
+        user.username = username
+    if phone:
+        user.phone = phone
+    await db.commit()
+    return {"message": "프로필이 수정되었습니다"}
+
+
+@router.get("/{user_id}/public")
+async def get_public_profile(user_id: int, db: AsyncSession = Depends(get_db)):
+    from yes24_clone.models.review import Review
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+    review_count = (await db.execute(
+        select(func.count()).where(Review.user_id == user_id)
+    )).scalar() or 0
+    return {
+        "username": user.username,
+        "grade": user.grade,
+        "review_count": review_count,
+        "join_date": user.created_at.isoformat() if user.created_at else None,
+    }
+
+
 @router.get("/points-history")
 async def get_points_history(user: User = Depends(require_user)):
     # Stub: return mock points history

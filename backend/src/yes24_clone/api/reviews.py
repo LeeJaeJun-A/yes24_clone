@@ -46,6 +46,79 @@ async def create_review(
     return {"message": "리뷰가 등록되었습니다.", "id": review.id}
 
 
+@router.put("/products/{goods_no}/reviews/{review_id}")
+async def update_product_review(
+    goods_no: int,
+    review_id: int,
+    req: ReviewCreateRequest,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Review).where(Review.id == review_id, Review.user_id == user.id))
+    review = result.scalar_one_or_none()
+    if not review:
+        raise HTTPException(status_code=404, detail="리뷰를 찾을 수 없습니다")
+    review.rating = req.rating
+    review.content = req.content
+    if req.title is not None:
+        review.title = req.title
+    await db.commit()
+    return {"message": "리뷰가 수정되었습니다"}
+
+
+@router.delete("/products/{goods_no}/reviews/{review_id}")
+async def delete_product_review(
+    goods_no: int,
+    review_id: int,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Review).where(Review.id == review_id, Review.user_id == user.id))
+    review = result.scalar_one_or_none()
+    if not review:
+        raise HTTPException(status_code=404, detail="리뷰를 찾을 수 없습니다")
+    prod = await db.execute(select(Product).where(Product.id == review.product_id))
+    product = prod.scalar_one_or_none()
+    if product:
+        product.review_count = max(0, product.review_count - 1)
+    await db.delete(review)
+    await db.commit()
+    return {"message": "리뷰가 삭제되었습니다"}
+
+
+@router.post("/products/{goods_no}/reviews/{review_id}/helpful")
+async def toggle_product_review_helpful(
+    goods_no: int,
+    review_id: int,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Review).where(Review.id == review_id))
+    review = result.scalar_one_or_none()
+    if not review:
+        raise HTTPException(status_code=404, detail="리뷰를 찾을 수 없습니다")
+
+    existing = await db.execute(
+        select(ReviewHelpful).where(
+            ReviewHelpful.review_id == review_id,
+            ReviewHelpful.user_id == user.id,
+        )
+    )
+    vote = existing.scalar_one_or_none()
+
+    if vote:
+        await db.delete(vote)
+        review.likes = max(0, review.likes - 1)
+        is_helpful = False
+    else:
+        db.add(ReviewHelpful(review_id=review_id, user_id=user.id))
+        review.likes += 1
+        is_helpful = True
+
+    await db.commit()
+    return {"helpful_count": review.likes, "is_helpful": is_helpful}
+
+
 @router.post("/reviews/{review_id}/helpful")
 async def toggle_helpful(
     review_id: int,
@@ -164,6 +237,41 @@ async def delete_review(
     await db.delete(review)
     await db.commit()
     return {"message": "리뷰가 삭제되었습니다."}
+
+
+@router.get("/products/{goods_no}/reviews/stats")
+async def get_review_stats(
+    goods_no: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Return rating distribution for a product."""
+    prod_result = await db.execute(select(Product.id).where(Product.goods_no == goods_no))
+    product_id = prod_result.scalar_one_or_none()
+    if product_id is None:
+        raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다")
+
+    dist_q = (
+        select(Review.rating, func.count())
+        .where(Review.product_id == product_id)
+        .group_by(Review.rating)
+    )
+    dist_result = await db.execute(dist_q)
+    rating_dist = {r: 0 for r in range(1, 6)}
+    total = 0
+    for rating, count in dist_result.all():
+        rating_dist[rating] = count
+        total += count
+
+    avg_q = select(func.avg(Review.rating)).where(Review.product_id == product_id)
+    avg_result = await db.execute(avg_q)
+    avg_rating = avg_result.scalar()
+
+    return {
+        "goods_no": goods_no,
+        "total_reviews": total,
+        "average_rating": round(float(avg_rating), 2) if avg_rating else 0,
+        "rating_distribution": rating_dist,
+    }
 
 
 @router.get("/products/{goods_no}/reviews", response_model=PaginatedResponse[ReviewOut])

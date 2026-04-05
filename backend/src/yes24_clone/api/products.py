@@ -8,7 +8,8 @@ from sqlalchemy import select, func
 import redis.asyncio as aioredis
 
 from yes24_clone.db.session import get_db
-from yes24_clone.api.deps import get_redis
+from yes24_clone.api.deps import get_redis, require_user
+from yes24_clone.models.user import User
 from yes24_clone.models.product import Product
 from yes24_clone.schemas.product import ProductDetailOut, ProductListOut
 from yes24_clone.schemas.common import PaginatedResponse
@@ -244,6 +245,31 @@ async def get_by_tag(
     )
 
 
+@router.post("/{goods_no}/purchase")
+async def purchase_product(
+    goods_no: int,
+    quantity: int = 1,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Product).where(Product.goods_no == goods_no))
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다")
+    if product.is_soldout or product.stock_quantity < quantity:
+        raise HTTPException(status_code=400, detail="재고가 부족합니다")
+    product.stock_quantity -= quantity
+    if product.stock_quantity == 0:
+        product.is_soldout = True
+    await db.commit()
+    return {
+        "message": "구매 처리 완료",
+        "goods_no": goods_no,
+        "remaining_stock": product.stock_quantity,
+        "is_soldout": product.is_soldout,
+    }
+
+
 @router.get("/{goods_no}/preview")
 async def get_preview(goods_no: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Product).where(Product.goods_no == goods_no))
@@ -331,6 +357,9 @@ async def get_product(goods_no: int, db: AsyncSession = Depends(get_db), redis: 
         raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다")
     result_data = ProductDetailOut.model_validate(product)
     d = result_data.model_dump(mode="json")
+
+    d["stock_quantity"] = product.stock_quantity
+    d["is_soldout"] = product.is_soldout
 
     # FIX 3: Add format variants
     formats = [{"type": "종이책", "goods_no": product.goods_no, "price": product.sale_price, "active": True}]

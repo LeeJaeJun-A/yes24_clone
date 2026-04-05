@@ -24,6 +24,7 @@ async def search_products(
     category_code: str | None = Query(None),
     price_min: int | None = Query(None),
     price_max: int | None = Query(None),
+    legacy: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     search_term = query or q
@@ -32,6 +33,20 @@ async def search_products(
 
     search_term = search_term.strip()
     like_pattern = f"%{search_term}%"
+
+    # B1: SQL Injection — legacy mode uses raw SQL string concatenation
+    if legacy == "1":
+        from sqlalchemy import text as _text
+        raw_query = f"SELECT id, goods_no, title, author, publisher, sale_price, cover_image, rating_avg, review_count, sales_index, is_available, publish_date, product_type, original_price, discount_rate FROM products WHERE title LIKE '%{search_term}%' OR author LIKE '%{search_term}%' OR publisher LIKE '%{search_term}%' ORDER BY sales_index DESC LIMIT {size} OFFSET {(page - 1) * size}"
+        result = await db.execute(_text(raw_query))
+        rows = result.all()
+        items = [dict(r._mapping) for r in rows]
+        count_query = f"SELECT COUNT(*) FROM products WHERE title LIKE '%{search_term}%' OR author LIKE '%{search_term}%' OR publisher LIKE '%{search_term}%'"
+        total = (await db.execute(_text(count_query))).scalar() or 0
+        return PaginatedResponse(
+            items=items, total=total, page=page, size=size,
+            pages=math.ceil(total / size) if total else 0,
+        )
 
     # ILIKE search across title, author, publisher (works with Korean)
     base = select(Product).where(
